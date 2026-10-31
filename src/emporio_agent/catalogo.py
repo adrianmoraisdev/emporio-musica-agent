@@ -24,6 +24,19 @@ log = logging.getLogger(__name__)
 
 PREFIXO_CSV = "desafio_tecnico_ai_eng - "
 
+# Formas no singular/variações que o cliente usa para cada categoria (id -> tokens).
+PALAVRAS_CATEGORIA: dict[int, set[str]] = {
+    1: {"guitarra", "guitarras"},
+    2: {"baixo", "baixos", "contrabaixo"},
+    3: {"bateria", "baterias", "percussao"},
+    4: {"teclado", "teclados", "piano", "pianos", "sintetizador", "synth"},
+    5: {"violao", "violoes"},
+    6: {"flauta", "clarinete", "saxofone", "sax", "oboe", "sopro"},
+    7: {"trompete", "trombone", "tuba", "trompa", "metais"},
+    8: {"violino", "violinos", "viola", "violoncelo", "cello"},
+    9: {"ukulele", "ukuleles", "uke"},
+}
+
 
 class StatusProduto(StrEnum):
     ATIVO = "active"
@@ -239,15 +252,57 @@ class Catalogo:
 
     # --------------------------------------------------------------- produtos
     def categoria_por_nome(self, termo: str) -> Categoria | None:
-        alvo = normalizar(termo)
-        if not alvo:
+        termos = set(tokens(termo))
+        if not termos:
             return None
         for cat in self.categorias.values():
-            nome = normalizar(cat.nome)
-            # "violao" casa com "violoes", "guitarra" com "guitarras" etc.
-            if alvo in nome or nome.startswith(alvo[:5]):
+            if termos & self._palavras_categoria(cat):
                 return cat
         return None
+
+    def _palavras_categoria(self, categoria: Categoria) -> set[str]:
+        return set(tokens(categoria.nome)) | PALAVRAS_CATEGORIA.get(categoria.id, set())
+
+    def buscar(
+        self,
+        consulta: str = "",
+        *,
+        categoria: Categoria | None = None,
+        preco_min: float | None = None,
+        preco_max: float | None = None,
+        apenas_disponiveis: bool = True,
+    ) -> list[Produto]:
+        """Filtra o catálogo; `consulta` casa com nome, descrição, specs e categoria.
+
+        Termos da consulta que só nomeiam a categoria (ex.: "violão") viram filtro de
+        categoria, para que "violão nylon" não exija a palavra "violão" no nome do produto.
+        """
+        termos = tokens(consulta)
+        if categoria is None and termos:
+            categoria = self.categoria_por_nome(consulta)
+        if categoria is not None:
+            termos = [t for t in termos if t not in self._palavras_categoria(categoria)]
+
+        encontrados: list[tuple[Produto, float]] = []
+        for p in self.produtos.values():
+            if categoria is not None and p.categoria_id != categoria.id:
+                continue
+            if apenas_disponiveis and not p.disponivel:
+                continue
+            preco = self.preco_final(p)
+            if preco_min is not None and preco < preco_min:
+                continue
+            if preco_max is not None and preco > preco_max:
+                continue
+            cobertura = 1.0
+            if termos:
+                texto = set(tokens(f"{p.nome} {p.descricao} {' '.join(p.specs.values())}"))
+                cobertura = sum(1 for t in termos if t in texto) / len(termos)
+                if cobertura < 0.5:
+                    continue
+            encontrados.append((p, cobertura))
+        encontrados.sort(key=lambda par: (-par[1], self.preco_final(par[0])))
+        return [p for p, _ in encontrados]
 
     def buscar_por_nome(self, consulta: str, limite: int = 5) -> list[tuple[Produto, float]]:
         """Ranqueia produtos pela similaridade do nome com a consulta (0..1)."""
