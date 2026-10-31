@@ -229,8 +229,8 @@ end; tool calls and their JSON results are shown under each turn. The date is pi
 
 Two models were used because Gemini's free tier allows 20 requests per model per day; the
 first run hit that limit after two scenarios, and the remaining three were generated with
-another free Flash model. Every price, deadline and policy rule quoted in the replies was
-checked against the tool results.
+another free Flash model. I checked every price, deadline and policy rule quoted in the
+replies against the tool results and the manual.
 
 If no API is available, `scripts/simular_exemplos.py` writes clearly labeled simulated
 transcripts instead (real tool calls, scripted replies) and never overwrites a real one.
