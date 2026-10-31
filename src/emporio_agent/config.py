@@ -13,6 +13,13 @@ from dotenv import load_dotenv
 RAIZ_PROJETO = Path(__file__).resolve().parents[2]
 FUSO_LOJA = ZoneInfo("America/Campo_Grande")
 
+# Modelo usado quando EMPORIO_MODELO não é informado, por provedor.
+MODELO_PADRAO = {
+    "anthropic": "claude-opus-5-5",
+    "gemini": "gemini-3.5-flash",  # disponível no plano gratuito do Google AI Studio
+    "openai-compat": "qwen2.5:7b",  # ex.: Ollama local
+}
+
 
 @dataclass(frozen=True, slots=True)
 class Settings:
@@ -23,6 +30,7 @@ class Settings:
     hoje_fixo: date | None
     max_iteracoes_ferramentas: int
     hora_fixa: datetime | None = None
+    provedor: str = "anthropic"
 
     def agora(self) -> datetime:
         """Data/hora atual no fuso da loja.
@@ -50,9 +58,13 @@ def carregar_settings() -> Settings:
     if hoje_env and "T" in hoje_env:
         hora_fixa = datetime.fromisoformat(hoje_env).replace(tzinfo=FUSO_LOJA)
         hoje_env = hoje_env.split("T")[0]
+    provedor = os.getenv("EMPORIO_PROVEDOR", "anthropic")
+    if provedor not in MODELO_PADRAO:
+        raise ValueError(f"EMPORIO_PROVEDOR inválido: {provedor!r} (use {list(MODELO_PADRAO)})")
     return Settings(
+        provedor=provedor,
         hora_fixa=hora_fixa,
-        modelo=os.getenv("EMPORIO_MODELO", "claude-opus-5-5"),
+        modelo=os.getenv("EMPORIO_MODELO") or MODELO_PADRAO[provedor],
         esforco=os.getenv("EMPORIO_ESFORCO", "low"),
         dir_dados=Path(os.getenv("EMPORIO_DADOS", RAIZ_PROJETO / "data")),
         dir_historico=Path(os.getenv("EMPORIO_HISTORICO", RAIZ_PROJETO / ".cache" / "conversas")),

@@ -268,9 +268,14 @@ def main() -> int:
     destino = RAIZ_PROJETO / "examples"
     destino.mkdir(exist_ok=True)
     for nome in CENARIOS:
+        arquivo = destino / f"{nome}.md"
+        # Nunca sobrescreve uma transcrição gerada pelo agente real.
+        if arquivo.exists() and "running the real agent" in arquivo.read_text(encoding="utf-8"):
+            print(f"[{nome}] real transcript kept")
+            continue
         # Ferramentas novas por cenário: cada conversa é uma sessão independente.
         conteudo = simular(nome, Ferramentas(catalogo, politicas, settings))
-        (destino / f"{nome}.md").write_text(conteudo, encoding="utf-8")
+        arquivo.write_text(conteudo, encoding="utf-8")
         print(f"[{nome}] ok")
     return 0
 

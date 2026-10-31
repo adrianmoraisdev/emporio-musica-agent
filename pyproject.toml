@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "anthropic>=2.3,<3",
+    "openai>=1.50,<3",  # cliente das APIs compatíveis com Chat Completions (Gemini, Ollama)
     "python-dotenv>=1.0",
     "rich>=13",
     "tzdata>=2024.1",  # Windows não traz a base IANA de fusos (America/Campo_Grande)

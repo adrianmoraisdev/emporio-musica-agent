@@ -28,6 +28,9 @@ class RepositorioHistorico:
         if not caminho.exists():
             return []
         dados: list[dict[str, Any]] = json.loads(caminho.read_text(encoding="utf-8"))
+        # Sessões salvas no formato antigo (específico da Anthropic) são descartadas.
+        if any("texto" not in m and "resultados" not in m for m in dados):
+            return []
         return dados
 
     def salvar(self, sessao: str, mensagens: list[dict[str, Any]]) -> None:
