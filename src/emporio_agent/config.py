@@ -22,9 +22,16 @@ class Settings:
     dir_historico: Path
     hoje_fixo: date | None
     max_iteracoes_ferramentas: int
+    hora_fixa: datetime | None = None
 
     def agora(self) -> datetime:
-        """Data/hora atual no fuso da loja. `EMPORIO_HOJE` fixa a data (demos reprodutíveis)."""
+        """Data/hora atual no fuso da loja.
+
+        `EMPORIO_HOJE=AAAA-MM-DD` fixa só a data; `EMPORIO_HOJE=AAAA-MM-DDTHH:MM` fixa data e
+        hora (demos e exemplos reprodutíveis).
+        """
+        if self.hora_fixa is not None:
+            return self.hora_fixa
         agora = datetime.now(FUSO_LOJA)
         if self.hoje_fixo is None:
             return agora
@@ -39,7 +46,12 @@ class Settings:
 def carregar_settings() -> Settings:
     load_dotenv(RAIZ_PROJETO / ".env")
     hoje_env = os.getenv("EMPORIO_HOJE")
+    hora_fixa = None
+    if hoje_env and "T" in hoje_env:
+        hora_fixa = datetime.fromisoformat(hoje_env).replace(tzinfo=FUSO_LOJA)
+        hoje_env = hoje_env.split("T")[0]
     return Settings(
+        hora_fixa=hora_fixa,
         modelo=os.getenv("EMPORIO_MODELO", "claude-opus-5-5"),
         esforco=os.getenv("EMPORIO_ESFORCO", "low"),
         dir_dados=Path(os.getenv("EMPORIO_DADOS", RAIZ_PROJETO / "data")),
