@@ -63,3 +63,10 @@ def test_diagnostico_aponta_inconsistencias_conhecidas(catalogo: Catalogo) -> No
     assert "produto 96" in avisos
     assert "categoria 6" in avisos
     assert "bruno.martins@jmail.com" in avisos
+
+
+def test_alternativas_priorizam_mesmo_tipo_de_corda(catalogo: Catalogo) -> None:
+    esgotado = catalogo.produtos[96]  # Giannini GF-3D, aço
+    assert all(
+        p.specs.get("strings") == esgotado.specs["strings"] for p in catalogo.alternativas(esgotado)
+    )

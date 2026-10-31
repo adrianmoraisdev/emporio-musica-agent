@@ -106,3 +106,12 @@ def test_historico_persiste(tmp_path: Any) -> None:
     assert repo.carregar("abc") == [{"role": "user", "content": "oi"}]
     with pytest.raises(ValueError):
         repo.carregar("../fora")
+
+
+def test_fallback_so_em_modelos_suportados(ferramentas: Ferramentas) -> None:
+    resposta_ok = SimpleNamespace(stop_reason="end_turn", content=[texto("oi")])
+    cliente = ClienteFalso([resposta_ok])
+    settings = replace(ferramentas.settings, modelo="claude-haiku-5-5")
+    Agente(ferramentas, settings, cliente=cliente).responder("oi")  # type: ignore[arg-type]
+    assert "fallbacks" not in cliente.pedidos[0]
+    assert "betas" not in cliente.pedidos[0]

@@ -328,13 +328,20 @@ class Catalogo:
         return round(produto.preco * (1 - promo.desconto_pct / 100), 2)
 
     def alternativas(self, produto: Produto, limite: int = 3) -> list[Produto]:
-        """Produtos disponíveis da mesma categoria com preço mais próximo."""
+        """Produtos disponíveis da mesma categoria, priorizando o mesmo tipo de corda
+        (nylon x aço) e, depois, o preço mais próximo."""
         candidatos = [
             p
             for p in self.produtos.values()
             if p.id != produto.id and p.categoria_id == produto.categoria_id and p.disponivel
         ]
-        candidatos.sort(key=lambda p: abs(self.preco_final(p) - produto.preco))
+        cordas = produto.specs.get("strings")
+        candidatos.sort(
+            key=lambda p: (
+                cordas is not None and p.specs.get("strings") != cordas,
+                abs(self.preco_final(p) - produto.preco),
+            )
+        )
         return candidatos[:limite]
 
     # ---------------------------------------------------------------- pedidos

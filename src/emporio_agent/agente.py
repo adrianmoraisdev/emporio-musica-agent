@@ -21,7 +21,9 @@ log = logging.getLogger(__name__)
 
 # Em uma recusa dos classificadores de segurança, a API refaz o pedido em outro modelo
 # automaticamente (evita que um falso positivo vire "atendimento fora do ar").
+# O modo "default" só existe para estes modelos; o Haiku não tem fallback server-side.
 BETAS = ["server-side-fallback-2026-07-01"]
+MODELOS_COM_FALLBACK = ("claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5")
 MAX_TOKENS = 16_000
 
 MSG_FALHA = (
@@ -90,6 +92,9 @@ class Agente:
             return Resposta(MSG_FALHA, chamadas)
 
     def _chamar_modelo(self) -> Any:
+        extras: dict[str, Any] = {}
+        if self.settings.modelo in MODELOS_COM_FALLBACK:
+            extras = {"betas": BETAS, "fallbacks": "default"}
         # Mensagens/ferramentas são dicts JSON (persistidos em disco), não os TypedDicts do SDK.
         return self.cliente.beta.messages.create(  # type: ignore[call-overload]
             model=self.settings.modelo,
@@ -99,8 +104,7 @@ class Agente:
             messages=self.mensagens,
             output_config={"effort": self.settings.esforco},
             cache_control={"type": "ephemeral"},
-            betas=BETAS,
-            fallbacks="default",
+            **extras,
         )
 
     def _executar(self, bloco: Any, chamadas: list[ChamadaFerramenta]) -> dict[str, Any]:
