@@ -4,13 +4,18 @@ version = "0.1.0"
 description = "Agente de atendimento da Empório da Música (desafio técnico AI Engineer)"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "anthropic>=2.3,<3",
+    "python-dotenv>=1.0",
+    "rich>=13",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.11",
+    "pypdf>=6",
 ]
 
 [build-system]
@@ -26,6 +31,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["SIM905"]  # listas de palavras ficam mais legíveis como "a b c".split()
 
 [tool.mypy]
 python_version = "3.11"

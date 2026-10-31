@@ -1,0 +1,49 @@
+"""Configuração do agente, lida de variáveis de ambiente (com suporte a arquivo .env)."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from datetime import date, datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from dotenv import load_dotenv
+
+RAIZ_PROJETO = Path(__file__).resolve().parents[2]
+FUSO_LOJA = ZoneInfo("America/Campo_Grande")
+
+
+@dataclass(frozen=True, slots=True)
+class Settings:
+    modelo: str
+    esforco: str
+    dir_dados: Path
+    dir_historico: Path
+    hoje_fixo: date | None
+    max_iteracoes_ferramentas: int
+
+    def agora(self) -> datetime:
+        """Data/hora atual no fuso da loja. `EMPORIO_HOJE` fixa a data (demos reprodutíveis)."""
+        agora = datetime.now(FUSO_LOJA)
+        if self.hoje_fixo is None:
+            return agora
+        return agora.replace(
+            year=self.hoje_fixo.year, month=self.hoje_fixo.month, day=self.hoje_fixo.day
+        )
+
+    def hoje(self) -> date:
+        return self.agora().date()
+
+
+def carregar_settings() -> Settings:
+    load_dotenv(RAIZ_PROJETO / ".env")
+    hoje_env = os.getenv("EMPORIO_HOJE")
+    return Settings(
+        modelo=os.getenv("EMPORIO_MODELO", "claude-opus-5-5"),
+        esforco=os.getenv("EMPORIO_ESFORCO", "low"),
+        dir_dados=Path(os.getenv("EMPORIO_DADOS", RAIZ_PROJETO / "data")),
+        dir_historico=Path(os.getenv("EMPORIO_HISTORICO", RAIZ_PROJETO / ".cache" / "conversas")),
+        hoje_fixo=date.fromisoformat(hoje_env) if hoje_env else None,
+        max_iteracoes_ferramentas=int(os.getenv("EMPORIO_MAX_ITERACOES", "8")),
+    )
