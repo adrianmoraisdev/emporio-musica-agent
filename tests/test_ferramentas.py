@@ -117,3 +117,10 @@ def test_politicas_com_secao_explicita(ferramentas: Ferramentas) -> None:
     trechos = r["trechos"]
     assert isinstance(trechos, list)
     assert trechos[0]["secao"].startswith("4.1")
+
+
+def test_encaminhamento_gera_protocolo(ferramentas: Ferramentas, tmp_path: Path) -> None:
+    ferramentas.settings = replace(ferramentas.settings, dir_historico=tmp_path)
+    r = _rodar(ferramentas, "encaminhar_para_equipe", motivo="reclamacao", resumo="teste")
+    assert str(r["protocolo"]).startswith("EM2026")
+    assert (tmp_path / "encaminhamentos.jsonl").read_text(encoding="utf-8").count("\n") == 1

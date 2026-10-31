@@ -11,6 +11,9 @@ dependencies = [
     "tzdata>=2024.1",  # Windows não traz a base IANA de fusos (America/Campo_Grande)
 ]
 
+[project.scripts]
+emporio-agent = "emporio_agent.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8",

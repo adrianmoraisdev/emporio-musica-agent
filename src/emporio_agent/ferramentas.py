@@ -144,7 +144,33 @@ DEFINICOES: list[dict[str, Any]] = [
         ),
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
+    {
+        "name": "encaminhar_para_equipe",
+        "description": (
+            "Registra um atendimento para a equipe humana: reclamações, pedidos de devolução "
+            "ou troca a efetivar, dúvidas que o manual não cobre ou cliente pedindo humano. "
+            "Use só depois de entender o caso; não peça dados que já estão na conversa."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "motivo": {
+                    "type": "string",
+                    "enum": ["reclamacao", "troca_devolucao", "duvida_sem_resposta", "outro"],
+                },
+                "resumo": {
+                    "type": "string",
+                    "description": "Resumo objetivo do caso para a equipe (inclua nº do pedido "
+                    "se houver).",
+                },
+            },
+            "required": ["motivo", "resumo"],
+            "additionalProperties": False,
+        },
+    },
 ]
+
+PRAZO_RETORNO_EQUIPE = "24 horas úteis"  # manual §7.3
 
 
 def _descrever_disponibilidade(produto: Produto) -> str:
@@ -176,6 +202,7 @@ class Ferramentas:
             "consultar_pedido": self.consultar_pedido,
             "consultar_politicas": self.consultar_politicas,
             "status_loja": self.status_loja,
+            "encaminhar_para_equipe": self.encaminhar_para_equipe,
         }
         handler = handlers.get(nome)
         if handler is None:
@@ -335,3 +362,20 @@ class Ferramentas:
 
     def status_loja(self) -> dict[str, Any]:
         return status_loja(self.settings.agora())
+
+    # ------------------------------------------------------------- equipe
+    def encaminhar_para_equipe(self, motivo: str, resumo: str) -> dict[str, Any]:
+        """Protótipo: grava o chamado em JSONL; em produção iria para o CRM/helpdesk."""
+        self.settings.dir_historico.mkdir(parents=True, exist_ok=True)
+        protocolo = f"EM{self.settings.agora():%Y%m%d%H%M%S}"
+        registro = {
+            "protocolo": protocolo,
+            "motivo": motivo,
+            "resumo": resumo,
+            "criado_em": self.settings.agora().isoformat(),
+        }
+        with (self.settings.dir_historico / "encaminhamentos.jsonl").open(
+            "a", encoding="utf-8"
+        ) as f:
+            f.write(json.dumps(registro, ensure_ascii=False) + "\n")
+        return {"protocolo": protocolo, "prazo_retorno": PRAZO_RETORNO_EQUIPE}
